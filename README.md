@@ -30,20 +30,21 @@ Look, reading from disk is slow, and reading from memory is fast and everyone wa
 #### Base Functionality
 
 - [x] Parsing jshp tags
-- [ ] Echo tag (`<?= ?>`) is currently rather useless
 - [ ] Jshp file discovery
 - [ ] HTTP serving
+- [ ] Test invalid syntax handling (unclosed tags, etc.), handle freestanding closing tag (?)
+- [ ] Echo tag (`<?= ?>`) is currently rather useless
 - [ ] ~~File watching~~ we going straight from memory :dancer:
 - [ ] Implement CLI
 - [ ] Implement `check_syntax` - checking the syntax of code fragments (`node --check` or directly with node:vm module)
   before startup
-- [ ] Better Node subprocess "management" - currently it spawns a new process for every \[.jshp\] request, instead have
-  standby processes that are reused (N=`nproc` or something like that)
+
 
 #### Big If True
 
-- [ ] Typescript support
-- [ ] node_modules support / require() support
+- [ ] Typescript support ?
+- [ ] node_modules support / require() support ??
+- [ ] wasm ???
 
 #### Misc
 

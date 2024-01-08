@@ -65,14 +65,15 @@ fn parse_code_span(s: Span) -> IResult<Span, CodeSpan> {
 pub fn parse_file(raw_str: &String) -> Result<Box<PreprocessedFile>, String> {
     let mut span = Span::new(raw_str.trim());
     if span.len() == 0 {
-        // TODO: this should be a warning, not an error or maybe just panic, the caller could/should check for this
+        // TODO: this should be a warning, not an error, or maybe just a panic, the caller could/should check for this
         return Err("Empty buffer".to_owned());
     }
 
     let mut code_spans = Vec::new();
     loop {
-        // This is a bit of a hack, as I don't know if there is a way to extract enough information from
-        // the nom error (in take_until in `parse_code_span`) to distinguish exhausted input from a parse error.
+        // A hack/extraneous read, I couldn't find a way to extract enough information from
+        // the nom error (in `take_until` in `fn parse_code_span` ) to distinguish exhausted input from a "syntax" error
+        // TODO: move this into the err branch of `parse_code_span`
         let peek_res: IResult<Span, Span> = peek(take_until("<?"))(span);
         if peek_res.is_err() {
             // no more fragments
@@ -143,7 +144,7 @@ mod tests {
         let res = parse_file(&file_text);
         match res {
             Ok(res) => {
-                println!("{:?}", res);
+                // println!("{:?}", res);
                 // TODO
             }
             Err(err) => {
