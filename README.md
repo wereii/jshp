@@ -7,11 +7,11 @@ Memory efficient :roller_coaster:, fast ⚡, and easy to use Node.js hypertext p
 ### Memory Efficient
 
 It's written in Rust, so it's memory efficient by default.  
-<small>
+<sup><sub>
 It definitely does not store entire files in memory.  
 And even if it did, how much RAM do you have? How much RAM does your cloud have? Right, I thought so.  
 Look, reading from disk is slow, and reading from memory is fast and everyone wants fast.
-</small>
+</sub></sup>
 
 ## How To Use It?
 
