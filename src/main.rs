@@ -13,12 +13,15 @@ fn locate_files(path: &str) -> io::Result<Vec<String>> {
     dirs.push(path.to_string());
     while let Some(dir) = dirs.pop() {
         for entry in std::fs::read_dir(dir)? {
+            
             let entry = entry.unwrap();
-            let path = entry.path();
-            if path.is_dir() {
-                dirs.push(path.to_str().unwrap().to_string());
-            } else if path.as_path().ends_with(".jshp") {
-                files.push(path.to_str().unwrap().to_string());
+            let entry_dir = entry.path();
+            let entry_dir_str = entry_dir.to_str().unwrap();
+
+            if entry_dir.is_dir() {
+                dirs.push(entry_dir.to_str().unwrap().to_string());
+            } else if entry_dir_str.ends_with(".jshp") {
+                files.push(entry_dir.to_str().unwrap().to_string());
             }
         }
     }
@@ -47,6 +50,7 @@ fn main() {
             std::process::exit(1);
         }
     };
+
     for file in files {
         println!("{:?}", file);
     }
