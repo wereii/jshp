@@ -1,14 +1,15 @@
 mod http;
+mod io;
 mod language;
 
 use std::path::PathBuf;
 
-use crate::http::file_handler::FileHandler;
-use crate::http::util;
-
-use astra::{Body, Request, Response, ResponseBuilder, Server};
+use astra::{Body, Response, ResponseBuilder, Server, Request};
+use io::FileHandler;
 use log::{error, info};
+use http::types::MimeType;
 use pretty_env_logger;
+
 
 #[derive(Debug, Clone)]
 struct ServerState {
@@ -46,13 +47,7 @@ fn route(req: Request, ctx: ServerState) -> Response {
     };
 
     let file_path = PathBuf::from(&stripped_path);
-    let content_type: String;
-
-    if let Some(file_extension) = file_path.extension() {
-        content_type = util::get_content_type(file_extension.to_str().unwrap()).to_owned();
-    } else {
-        content_type = String::from("text/plain");
-    }
+    let content_type = MimeType::from(file_path.extension()).to_content_type_string();
 
     ResponseBuilder::new()
         .header("Content-Type", content_type)

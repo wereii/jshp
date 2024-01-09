@@ -1,4 +1,4 @@
-
+/* 
 pub const fn get_content_type(file_extension: &str) -> &'static str {
     match file_extension {
         "htm" | "html" => "text/html",
@@ -34,3 +34,4 @@ pub const fn get_content_type(file_extension: &str) -> &'static str {
         _ => "application/octet-stream",
     }
 }
+*/
