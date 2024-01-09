@@ -4,11 +4,12 @@ use rusty_v8 as v8;
 use rusty_v8::SharedRef;
 
 lazy_static! {
-    static ref PLATFORM: SharedRef<(v8::Platform)> =
+    static ref PLATFORM: SharedRef<v8::Platform> =
         v8::new_default_platform(0, false).make_shared();
 }
 
-struct V8 {}
+#[non_exhaustive] // avoid direct construction
+pub struct V8 {}
 
 impl V8 {
     pub fn init() {
@@ -60,7 +61,7 @@ mod tests {
     #[test]
     fn test() {
         V8::init();
-        let a = V8::evaluate("'Hello' ++ ' World!'");
+        let a = V8::evaluate("'Hello' + ' World!'");
         println!("{:?}", a); // holy shit it /just/ works
 
         V8::dispose();

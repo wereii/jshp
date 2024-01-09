@@ -87,7 +87,7 @@ pub fn parse_file(raw_str: &String) -> Result<Box<PreprocessedFile>, String> {
                 span = result_span;
             }
             Err(e) => {
-                return Err(format!("Failed parsing code span, error {}", e));
+                return Err(format!("Failed language code span, error {}", e));
             }
         }
     }
@@ -100,7 +100,7 @@ pub fn parse_file(raw_str: &String) -> Result<Box<PreprocessedFile>, String> {
 
 #[cfg(test)]
 mod tests {
-    use crate::parse::{parse_code_span, parse_file, Span};
+    use crate::language::parse::{parse_code_span, parse_file, Span};
 
     #[test]
     fn test_buffer_parser_jshp() {

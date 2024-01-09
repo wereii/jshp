@@ -1,12 +1,12 @@
-mod node_worker;
-mod parse;
-mod v8;
-mod file_handler;
+mod http;
+mod language;
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-use astra::{Body, Response, ResponseBuilder, Server, Request};
-use file_handler::{FileHandler, FileHandlerError};
+use crate::http::file_handler::FileHandler;
+use crate::http::util;
+
+use astra::{Body, Request, Response, ResponseBuilder, Server};
 use log::{error, info};
 use pretty_env_logger;
 
@@ -15,20 +15,16 @@ struct ServerState {
     file_handler: FileHandler,
 }
 
-
 fn server(address: &str, port: i32, state: ServerState) {
-    println!("Listening on http://{}:{}", "localhost", 3000);
+    info!("Listening on http://{}:{}", address, port);
 
-     Server::bind(format!("{}:{}", address, port))
-         .serve(move |req, _info| route(req, state.clone()))
-         .expect("serve failed");
+    Server::bind(format!("{}:{}", address, port))
+        .serve(move |req, _info| route(req, state.clone()))
+        .expect("serve failed");
 }
 
-
 fn route(req: Request, ctx: ServerState) -> Response {
-
-    info!("Requested page: {}", req.uri());
-    println!("Requested page: {}", req.uri());
+    info!("{} {}", req.method(), req.uri().path());
 
     // TODO? Kinda butchered
     let mut stripped_path = req.uri().to_string();
@@ -44,31 +40,19 @@ fn route(req: Request, ctx: ServerState) -> Response {
         Err(_) => {
             return ResponseBuilder::new()
                 .header("Content-Type", "text/html")
-                .body(Body::new("<h1>404 File not found</h1>"))
+                .body(Body::new("<h1>404 File Not Found</h1>"))
                 .unwrap();
         }
     };
 
-
     let file_path = PathBuf::from(&stripped_path);
     let content_type: String;
 
-    if let Some(extension) = file_path.extension() {
-        let extenstion = extension.to_str().expect("Should be convertible from OsStr to Str");
-
-        content_type = match extenstion {
-            "html" => "text/html",
-            "jpg" => "image/jpeg",
-            "webp" => "image/webp",
-            "png" => "image/png",
-            "svg" => "image/svg+xml",
-            _ => "text/plain",
-        }.to_string();
-    }
-    else {
+    if let Some(file_extension) = file_path.extension() {
+        content_type = util::get_content_type(file_extension.to_str().unwrap()).to_owned();
+    } else {
         content_type = String::from("text/plain");
     }
-
 
     ResponseBuilder::new()
         .header("Content-Type", content_type)
@@ -87,12 +71,7 @@ fn main() {
         }
     };
 
-    let state = ServerState {
-        file_handler
-    };
+    let state = ServerState { file_handler };
 
     server("127.0.0.1", 3000, state);
 }
-
-
-
