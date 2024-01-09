@@ -1,3 +1,3 @@
 mod file_handler;
 
-pub use file_handler::FileHandler;
+pub use file_handler::{FileHandler, FileHandlerError};

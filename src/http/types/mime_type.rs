@@ -49,8 +49,7 @@ impl From<&str> for MimeType {
     fn from(value: &str) -> Self {
         match value.to_lowercase().as_str() {
             "jshp" => Self::Jshp,
-            "html" => Self::Html,
-            "htmls" => Self::Html,
+            "html" | "htmls" => Self::Html,
             "css" => Self::Css,
             "txt" => Self::Txt,
             "xml" => Self::Xml,
