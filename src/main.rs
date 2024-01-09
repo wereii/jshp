@@ -3,8 +3,8 @@ mod parse;
 mod v8;
 
 use std::io;
-use astra::{Body, Response, ResponseBuilder, Server};
-use log::{error, info};
+use astra::{Body, Response, ResponseBuilder, Server, Request};
+use log::error;
 use pretty_env_logger;
 
 fn locate_files(path: &str) -> io::Result<Vec<String>> {
@@ -16,28 +16,48 @@ fn locate_files(path: &str) -> io::Result<Vec<String>> {
             
             let entry = entry.unwrap();
             let entry_dir = entry.path();
-            let entry_dir_str = entry_dir.to_str().unwrap();
 
             if entry_dir.is_dir() {
                 dirs.push(entry_dir.to_str().unwrap().to_string());
-            } else if entry_dir_str.ends_with(".jshp") {
-                files.push(entry_dir.to_str().unwrap().to_string());
+            } else {
+                let unix_path = format!("./{}/", path);
+                let windows_path = format!("{}\\", path);
+                let new_filepath = entry_dir
+                    .to_str().unwrap()
+                    .to_string()
+                    .replace(&unix_path, "")
+                    .replace(&windows_path, "");
+
+                files.push(new_filepath);
             }
         }
     }
     Ok(files)
 }
 
-fn server() {
-    // Server::bind("localhost:3000")
-    //     .serve(|_req, _info| {
-    //         ResponseBuilder::new()
-    //             .header("Content-Type", "text/html")
-    //             .body(Body::new("Hi"))
-    //             .unwrap()
-    //     })
-    //     .expect("serve failed");
-    todo!("Implement server");
+fn server(address: &str, port: i32, files: Vec<String>) {
+    println!("Listening on http://{}:{}", "localhost", 3000);
+
+     Server::bind(format!("{}:{}", address, port))
+         .serve(move |req, _info| route(req, files.clone()))
+         .expect("serve failed");
+}
+
+
+fn route(req: Request, files: Vec<String>) -> Response {
+
+    println!("Requested path: {}", req.uri());
+
+    let mut body = String::from("<h1>Available files</h1><br>");
+
+    for file in &files {
+        body += &format!("{}<br>", file);
+    }
+
+    ResponseBuilder::new()
+        .header("Content-Type", "text/html")
+        .body(Body::new(body))
+        .unwrap()
 }
 
 fn main() {
@@ -51,10 +71,11 @@ fn main() {
         }
     };
 
-    for file in files {
+    for file in &files {
         println!("{:?}", file);
     }
-    server();
+
+    server("127.0.0.1", 3000, files);
 }
 
 
