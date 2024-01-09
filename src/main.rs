@@ -7,6 +7,11 @@ use astra::{Body, Response, ResponseBuilder, Server, Request};
 use log::error;
 use pretty_env_logger;
 
+#[derive(Debug, Clone)]
+struct ServerState {
+    files: Vec<String>
+}
+
 fn locate_files(path: &str) -> io::Result<Vec<String>> {
     let mut files = Vec::new();
     let mut dirs = Vec::new();
@@ -35,22 +40,22 @@ fn locate_files(path: &str) -> io::Result<Vec<String>> {
     Ok(files)
 }
 
-fn server(address: &str, port: i32, files: Vec<String>) {
+fn server(address: &str, port: i32, state: ServerState) {
     println!("Listening on http://{}:{}", "localhost", 3000);
 
      Server::bind(format!("{}:{}", address, port))
-         .serve(move |req, _info| route(req, files.clone()))
+         .serve(move |req, _info| route(req, state.clone()))
          .expect("serve failed");
 }
 
 
-fn route(req: Request, files: Vec<String>) -> Response {
+fn route(req: Request, state: ServerState) -> Response {
 
     println!("Requested path: {}", req.uri());
 
     let mut body = String::from("<h1>Available files</h1><br>");
 
-    for file in &files {
+    for file in &state.files {
         body += &format!("{}<br>", file);
     }
 
@@ -75,7 +80,9 @@ fn main() {
         println!("{:?}", file);
     }
 
-    server("127.0.0.1", 3000, files);
+    server("127.0.0.1", 3000, ServerState{
+        files
+    });
 }
 
 
