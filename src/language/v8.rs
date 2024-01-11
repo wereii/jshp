@@ -1,30 +1,44 @@
-use lazy_static::lazy_static;
 // https://github.com/denoland/rusty_v8/blob/main/examples/hello_world.rs
+
+use lazy_static::lazy_static;
+
 use rusty_v8 as v8;
 use rusty_v8::SharedRef;
 
 lazy_static! {
-    static ref PLATFORM: SharedRef<v8::Platform> =
-        v8::new_default_platform(0, false).make_shared();
+    static ref PLATFORM: SharedRef<v8::Platform> = v8::new_default_platform(0, false).make_shared();
 }
 
-#[non_exhaustive] // avoid direct construction
-pub struct V8 {}
+pub struct V8State {
+    initialized: bool,
+}
 
-impl V8 {
-    pub fn init() {
-        v8::V8::initialize_platform(PLATFORM.to_owned());
-        v8::V8::initialize();
+impl V8State {
+    pub fn new() -> Self {
+        Self { initialized: false }
     }
 
-    pub fn dispose() {
+    pub fn init(&mut self) {
+        if self.initialized {
+            panic!("V8Factory already initialized");
+        }
+        v8::V8::initialize_platform(PLATFORM.to_owned());
+        v8::V8::initialize();
+        self.initialized = true;
+    }
+
+    pub fn dispose(&mut self) {
+        if !self.initialized {
+            panic!("V8Factory not initialized");
+        }
+
         unsafe {
             v8::V8::dispose();
         }
         v8::V8::shutdown_platform();
     }
 
-    fn evaluate(code: &str) -> Option<String> {
+    fn evaluate(&self, code: &str) -> Result<String, String> {
         // don't @ me about this, I'm just trying to get it to work
         let isolate = &mut v8::Isolate::new(Default::default());
         let handle_scope = &mut v8::HandleScope::new(isolate);
@@ -34,23 +48,19 @@ impl V8 {
 
         let scope = &mut v8::TryCatch::new(context_scope);
         let code = v8::String::new(scope, code).unwrap();
-        // let origin = v8::ScriptOrigin::new(
-        //     &mut scope,
-        //     "".into(),
-        //     0,
-        //     0,
-        //     false,
-        //     0,
-        //     v8::undefined(&mut scope).into(),
-        //     false,
-        //     false,
-        //     false,
-        // );
 
-        let script = v8::Script::compile(scope, code, None)?;
-        let result = script.run(scope)?;
-        let result = result.to_string(scope).unwrap();
-        Some(result.to_rust_string_lossy(scope))
+        let script = match v8::Script::compile(scope, code, None) {
+            Some(script) => script,
+            None => {
+                let exception = scope.exception().expect("exception should exist");
+                return Err(exception.to_rust_string_lossy(scope));
+            }
+        };
+
+        match script.run(scope) {
+            Some(result) => Ok(result.to_rust_string_lossy(scope)),
+            None => Err(scope.exception().expect("exception should exist").to_rust_string_lossy(scope)),
+        }
     }
 }
 
@@ -59,11 +69,37 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test() {
-        V8::init();
-        let a = V8::evaluate("'Hello' + ' World!'");
-        println!("{:?}", a); // holy shit it /just/ works
+    fn test_evaluate() {
+        let mut v8 = V8State::new();
+        v8.init();
+        let result = v8.evaluate("1 + 1").unwrap();
+        assert_eq!(result, "2");
+        v8.cleanup();
+    }
 
-        V8::dispose();
+    #[test]
+    fn test_evaluate_syntax_error() {
+        let mut v8 = V8State::new();
+        v8.init();
+        let result = v8.evaluate("1 + a 1").unwrap_err();
+        println!("{}", result);
+    }
+
+    #[test]
+    fn test_evaluate_thrown_error() {
+        let mut v8 = V8State::new();
+        v8.init();
+        let result = v8.evaluate("2 / 0").unwrap_err();
+        println!("{}", result);
+        v8.cleanup();
+    }
+
+    #[test]
+    fn test_evaluate_thrown_error_manual() {
+        let mut v8 = V8State::new();
+        v8.init();
+        let result = v8.evaluate("throw new Error('oops')").unwrap_err();
+        println!("{}", result);
+        v8.cleanup();
     }
 }

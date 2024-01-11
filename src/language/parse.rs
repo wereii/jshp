@@ -1,13 +1,12 @@
-use std::error::Error;
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take_until};
 use nom::character::complete::multispace0;
-use nom::error::{context, ParseError};
+use nom::error::{context};
 use nom::sequence::{preceded, terminated};
-use nom::{ErrorConvert, Finish, InputIter, IResult, Parser, Slice};
+use nom::{IResult};
 
-use nom_locate::{position, LocatedSpan};
 use nom::combinator::peek;
+use nom_locate::{position, LocatedSpan};
 
 type Span<'a> = LocatedSpan<&'a str>;
 
@@ -45,7 +44,10 @@ fn parse_code_span(s: Span) -> IResult<Span, CodeSpan> {
         _ => panic!("Unexpected fragment"),
     };
 
-    let (s, code) = context("Missing closing tag", preceded(multispace0, take_until("?>")))(s)?;
+    let (s, code) = context(
+        "Missing closing tag",
+        preceded(multispace0, take_until("?>")),
+    )(s)?;
 
     let (s, _) = preceded(multispace0, tag("?>"))(s)?;
     let (s, stop_position) = position(s)?;
@@ -60,7 +62,6 @@ fn parse_code_span(s: Span) -> IResult<Span, CodeSpan> {
         },
     ));
 }
-
 
 pub fn parse_file(raw_str: &String) -> Result<Box<PreprocessedFile>, String> {
     let mut span = Span::new(raw_str.trim());

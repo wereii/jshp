@@ -1,2 +1,2 @@
-mod v8;
-mod parse;
+pub mod parse;
+pub mod v8;

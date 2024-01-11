@@ -23,9 +23,9 @@ pub enum MimeType {
 impl MimeType {
     pub fn to_content_type_string(&self) -> String {
         match self {
-            // TODO change to text/html when js executing is done. 
+            // TODO change to text/html when js executing is done.
             // Wont print now since the syntax is incorrect.
-            Self::Jshp => "text/plain", 
+            Self::Jshp => "text/plain",
             Self::Html => "text/html",
             Self::Css => "text/css",
             Self::Txt => "text/plain",
@@ -41,7 +41,8 @@ impl MimeType {
             Self::OctetStream => "application/octet-stream",
             Self::Js => "application/javascript",
             Self::Json => "application/json",
-        }.to_string()
+        }
+        .to_string()
     }
 }
 
@@ -75,10 +76,8 @@ impl From<Option<&OsStr>> for MimeType {
             Some(ext) => {
                 let ext = ext.to_str().expect("Should be convertable");
                 MimeType::from(ext)
-            },
-            None => {
-                Self::OctetStream 
             }
+            None => Self::OctetStream,
         }
     }
 }
