@@ -29,16 +29,13 @@ Look, reading from disk is slow, and reading from memory is fast and everyone wa
 
 #### Base Functionality
 
-- [x] Parsing jshp tags
-- [ ] Jshp file discovery
+- [x] Parsing code from jshp tags
 - [ ] HTTP serving
-- [ ] Test invalid syntax handling (unclosed tags, etc.), handle freestanding closing tag (?)
-- [ ] Echo tag (`<?= ?>`) is currently rather useless
-- [ ] ~~File watching~~ we going straight from memory :dancer:
+- [ ] Tag parsing
+    - [ ] Implement better parsing errors (unclosed tag, missing closing tag, etc.)
+    - [ ] Finish echo tag `<?= ... ?>`
 - [ ] Implement CLI
-- [ ] Implement `check_syntax` - checking the syntax of code fragments (`node --check` or directly with node:vm module)
-  before startup
-
+- [ ] Implement `check_syntax` flag - checking the syntax of code fragments
 
 #### Big If True
 
@@ -63,6 +60,6 @@ Look, reading from disk is slow, and reading from memory is fast and everyone wa
 It might not look like much but this is the best first project in any language, see:
 
 - It's made of multiple primitive parts that are rather easy to implement
-- Simple syntax parsing, simple file IO stuff, almost simple web serving, Node.js (sub-)process management
-
-</details> 
+- Simple syntax parsing, simple file IO stuff, almost simple HTTP serving, ignore the V8 stuff 
+  (originally it should use Node.js directly, but embedding V8 means faster, and everyone wants faster)
+</details>
