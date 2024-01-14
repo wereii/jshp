@@ -1,12 +1,16 @@
+use std::borrow::Cow;
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take_until};
 use nom::character::complete::multispace0;
-use nom::error::{context};
+use nom::error::context;
 use nom::sequence::{preceded, terminated};
-use nom::{IResult};
+use nom::IResult;
 
 use nom::combinator::peek;
 use nom_locate::{position, LocatedSpan};
+
+use std::fs::read_to_string;
+use std::path::PathBuf;
 
 type Span<'a> = LocatedSpan<&'a str>;
 
@@ -16,7 +20,7 @@ pub enum CodeSpanKind {
     JshpEcho,
 }
 
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct CodeSpan<'a> {
     pub start_position: Span<'a>,
     pub stop_position: Span<'a>,
@@ -24,10 +28,11 @@ pub struct CodeSpan<'a> {
     pub kind: CodeSpanKind,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct PreprocessedFile<'a> {
     pub code_spans: Vec<CodeSpan<'a>>,
-    pub raw: &'a String,
+    pub raw: String,
+    pub file_path: PathBuf,
 }
 
 fn parse_code_span(s: Span) -> IResult<Span, CodeSpan> {
@@ -63,11 +68,10 @@ fn parse_code_span(s: Span) -> IResult<Span, CodeSpan> {
     ));
 }
 
-pub fn parse_file(raw_str: &String) -> Result<Box<PreprocessedFile>, String> {
-    let mut span = Span::new(raw_str.trim());
+fn parse_data<'a>(content: &'a str) -> Result<Vec<CodeSpan<'a>>, String> {
+    let mut span = Span::new(&content);
     if span.len() == 0 {
-        // TODO: this should be a warning, not an error, or maybe just a panic, the caller could/should check for this
-        return Err("Empty buffer".to_owned());
+        panic!("Empty data")
     }
 
     let mut code_spans = Vec::new();
@@ -84,24 +88,32 @@ pub fn parse_file(raw_str: &String) -> Result<Box<PreprocessedFile>, String> {
         let res = parse_code_span(span);
         match res {
             Ok((result_span, code_span)) => {
-                code_spans.push(code_span);
+                code_spans.push(code_span.clone());
                 span = result_span;
             }
             Err(e) => {
-                return Err(format!("Failed language code span, error {}", e));
+                return Err(format!("Failed parsing javascript code span, error {}", e));
             }
         }
     }
 
+    Ok(code_spans)
+}
+
+pub fn process_file<'a>(file_path: PathBuf) -> Result<Box<PreprocessedFile<'a>>, String> {
+    let content = read_to_string(&file_path).map_err(|err| err.to_string())?;
+    let spans = parse_data(&content)?;
+
     Ok(Box::new(PreprocessedFile {
-        code_spans,
-        raw: raw_str,
+        code_spans: spans,
+        raw: String::from(content),
+        file_path,
     }))
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::language::parse::{parse_code_span, parse_file, Span};
+    use crate::javascript::parse::{parse_code_span, parse_data, Span};
 
     #[test]
     fn test_buffer_parser_jshp() {
@@ -142,7 +154,7 @@ mod tests {
                 </html>",
         );
 
-        let res = parse_file(&file_text);
+        let res = parse_data(&file_text);
         match res {
             Ok(res) => {
                 // println!("{:?}", res);
