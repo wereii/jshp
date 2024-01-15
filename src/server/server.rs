@@ -1,6 +1,6 @@
 use std::{path::PathBuf, sync::Arc};
 
-use crate::{error::Error, http::types::MimeType, io::FileHandler};
+use crate::{error::Error, io::FileHandler, server::types::MimeType};
 use astra::{Body, Request, Response, ResponseBuilder, Server as AstraServer};
 use log::info;
 

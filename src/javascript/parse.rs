@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take_until};
 use nom::character::complete::multispace0;
@@ -20,17 +19,20 @@ pub enum CodeSpanKind {
     JshpEcho,
 }
 
+/// A tuple of line and offset
+type PositionTuple = (u32, usize);
+
 #[derive(Clone, Debug)]
-pub struct CodeSpan<'a> {
-    pub start_position: Span<'a>,
-    pub stop_position: Span<'a>,
-    pub code: &'a str,
+pub struct CodeSpan {
+    pub start_position: PositionTuple,
+    pub stop_position: PositionTuple,
+    pub code: String,
     pub kind: CodeSpanKind,
 }
 
 #[derive(Clone, Debug)]
-pub struct PreprocessedFile<'a> {
-    pub code_spans: Vec<CodeSpan<'a>>,
+pub struct PreprocessedFile {
+    pub code_spans: Vec<CodeSpan>,
     pub raw: String,
     pub file_path: PathBuf,
 }
@@ -40,7 +42,7 @@ fn parse_code_span(s: Span) -> IResult<Span, CodeSpan> {
     // https://github.com/rust-bakery/nom/blob/main/doc/error_management.md
 
     let (s, _) = context("Missing starting tag", take_until("<?"))(s)?;
-    let (s, start_position) = position(s)?;
+    let (s, start_span) = position(s)?;
 
     let (s, opening_tag) = terminated(alt((tag("<?jshp"), tag("<?="))), multispace0)(s)?;
     let kind = match *opening_tag.fragment() {
@@ -55,20 +57,20 @@ fn parse_code_span(s: Span) -> IResult<Span, CodeSpan> {
     )(s)?;
 
     let (s, _) = preceded(multispace0, tag("?>"))(s)?;
-    let (s, stop_position) = position(s)?;
+    let (s, stop_span) = position(s)?;
 
     return Ok((
         s,
         CodeSpan {
-            start_position,
-            stop_position,
-            code: code.fragment().trim(),
+            start_position: (start_span.location_line(), start_span.location_offset()),
+            stop_position: (stop_span.location_line(), stop_span.location_offset()),
+            code: code.fragment().trim().to_owned(),
             kind,
         },
     ));
 }
 
-fn parse_data<'a>(content: &'a str) -> Result<Vec<CodeSpan<'a>>, String> {
+fn parse_data(content: &str) -> Result<Vec<CodeSpan>, String> {
     let mut span = Span::new(&content);
     if span.len() == 0 {
         panic!("Empty data")
@@ -100,15 +102,21 @@ fn parse_data<'a>(content: &'a str) -> Result<Vec<CodeSpan<'a>>, String> {
     Ok(code_spans)
 }
 
-pub fn process_file<'a>(file_path: PathBuf) -> Result<Box<PreprocessedFile<'a>>, String> {
-    let content = read_to_string(&file_path).map_err(|err| err.to_string())?;
-    let spans = parse_data(&content)?;
+pub fn process_file<'a>(file_path: PathBuf) -> Result<Box<PreprocessedFile>, String> {
+    let mut processed_file = {
+        PreprocessedFile {
+            code_spans: vec![],
+            raw: read_to_string(&file_path).map_err(|err| err.to_string())?,
+            file_path,
+        }
+    };
 
-    Ok(Box::new(PreprocessedFile {
-        code_spans: spans,
-        raw: String::from(content),
-        file_path,
-    }))
+    parse_data(&processed_file.raw)?
+        .into_iter()
+        .for_each(|code_span| {
+            processed_file.code_spans.push(code_span);
+        });
+    Ok(Box::new(processed_file))
 }
 
 #[cfg(test)]
@@ -130,10 +138,10 @@ mod tests {
         match res {
             Ok((_, code_span)) => {
                 assert_eq!(code_span.code, "echo(\"Hello World\")");
-                assert_eq!(code_span.start_position.location_line(), 1);
-                assert_eq!(code_span.start_position.location_offset(), 17);
-                assert_eq!(code_span.stop_position.location_line(), 1);
-                assert_eq!(code_span.stop_position.location_offset(), 46);
+                assert_eq!(code_span.start_position.0, 1);
+                assert_eq!(code_span.start_position.1, 17);
+                assert_eq!(code_span.stop_position.0, 1);
+                assert_eq!(code_span.stop_position.1, 46);
             }
             Err(e) => {
                 eprintln!("Error: {:?}", e);
@@ -156,7 +164,7 @@ mod tests {
 
         let res = parse_data(&file_text);
         match res {
-            Ok(res) => {
+            Ok(_res) => {
                 // println!("{:?}", res);
                 // TODO
             }
